@@ -1,4 +1,4 @@
-/*	keemy.cu
+/*	keemy.cpp
 
         KentuckY Efficent Error Modeler
 
@@ -30,7 +30,15 @@
 // --- CONSTANTS ---
 
 #define EMDIM 256 // number of gray levels in the error model
-#define COLORS 3 // number of color channels
+
+#ifndef COLORS
+#define COLORS 3 // default number of color channels
+#endif
+
+#if COLORS != 1 && COLORS != 3
+#error COLORS must be 1 or 3
+#endif
+
 #define PDFTERMS (6 * 3) // number of PDF terms used in similarity metric
 #define MINW (1.0/128)  // minimum weight for the self-patch 
 
@@ -39,7 +47,7 @@ int poff[POFFS];
 
 // max number of patches stored for denoising per-pixel
 // in-practice K = K_MAX
-constexpr uint8_t K_MAX = 40; // 40 is a good sweet spot, but higher K can lead to better quality denoising
+constexpr int K_MAX = 40; // 40 is a good sweet spot, but higher K can lead to better quality denoising
 
 constexpr int PATCH_SIZE = 3;
 constexpr int LEVELS_MAX = 10;  // safety cap on pyramid depth
@@ -117,13 +125,13 @@ struct PatchData {
   alignas(64) int16_t dys [K_MAX];
   alignas(64) float sims[K_MAX];
 
-  uint8_t count = 0; // number of matches stored so far
-  uint8_t K = K_MAX;
+  int count = 0; // number of matches stored so far
+  int K = K_MAX;
 
   // bestIdx is queried by other patches
   // worstIdx is only used internally to speed up linear search
-  int8_t bestIdx = -1;  // index of max sim
-  int8_t worstIdx = -1; // index of min sim
+  int bestIdx = -1;  // index of max sim
+  int worstIdx = -1; // index of min sim
 
   // fills up until K matches are found, then replaces worst match 
   void tryInsert(int dx, int dy, float sim) {
@@ -673,6 +681,7 @@ void denoise(DenoiserState &state, PatchData *matches, float simContributionThre
 }
 
 // rescore updates matches that are stale from image content changing
+// (regions that are similar remain similar, but by how much changes)
 // after every two denoise passes patch stack rescored
 void rescoreMatches(DenoiserState &state, PatchData *matches) {
   cv::Mat cleanPadded;
@@ -682,13 +691,13 @@ void rescoreMatches(DenoiserState &state, PatchData *matches) {
                      cv::BORDER_REFLECT);
 
   pixel_t  *cleanPorg = cleanPadded.data;
-  const int stride    = (int)cleanPadded.step;
+  const int stride = (int)cleanPadded.step;
 
   DenoiserState cleanState(state.resultMat);
   mkerrmodel(cleanState);
 
-  const int xdim      = state.xdim;
-  const int ydim      = state.ydim;
+  const int xdim = state.xdim;
+  const int ydim = state.ydim;
   const int PATCH_RAD = state.PATCH_RAD;
 
 #pragma omp parallel for schedule(static) collapse(2)
@@ -707,7 +716,7 @@ void rescoreMatches(DenoiserState &state, PatchData *matches) {
         }
 
         pixel_t *match = cleanPorg + padIdx(mx + PATCH_RAD, my + PATCH_RAD, stride);
-        patch.sims[k]  = simpatch(cleanState, src, match);
+        patch.sims[k] = simpatch(cleanState, src, match);
       }
     }
   }
@@ -813,6 +822,7 @@ void pyramidDenoise(DenoiserState &state, int levels = 3, int denoisePasses = 2,
     patchSearch(curr, matches[level].get(), levelIters, coarse, level, levels);
   }
 
+  // denoises using found patches
   fprintf(stdout, "\nDenoising (%d passes):\n", denoisePasses);
 
   fprintf(stdout, "\tPass 1...\n");
@@ -850,20 +860,60 @@ int computePyramidLevels(int width, int height) {
 }
 
 int main(int argc, char **argv) {
+  if (argc < 2) {
+    fprintf(stderr,
+            "Usage: %s <input> [output] [passes] [simThresh]\n",
+            argv[0]);
+    return 1;
+  }
+
+  // optional parameter defaults
+  const char* outfile = "denoised.png";
+  int denoisePasses = 2;
+  float simContributionThresh = 0.00f;
+
   myname = argv[0];
   infile = argv[1];
-  char* outfile = argv[2];
 
-  cv::Mat orgMat = cv::imread(infile);
+  if (argc > 2)
+    outfile = argv[2];
+
+  if (argc > 3)
+    denoisePasses = atoi(argv[3]);
+
+  if (argc > 4)
+    simContributionThresh = atof(argv[4]);
+
+#if COLORS == 1
+  cv::Mat orgMat = cv::imread(infile, cv::IMREAD_GRAYSCALE);
+#else
+  cv::Mat orgMat = cv::imread(infile, cv::IMREAD_COLOR);
+#endif
+
+  if (orgMat.empty()) {
+    fprintf(stderr, "Failed to load image: %s\n", infile);
+    return 1;
+  }
+
   DenoiserState state(orgMat);
 
   int levels = computePyramidLevels(state.xdim, state.ydim);
   fprintf(stdout, "Image: %dx%d  ->  %d pyramid levels\n",
           state.xdim, state.ydim, levels);
 
-  int denoisePasses = 2;
-  float simContributionThresh = 0.00f;
-  pyramidDenoise(state, levels, denoisePasses, simContributionThresh);
+  fprintf(stdout,
+          "passes=%d  simThresh=%f  outfile=%s\n",
+          denoisePasses,
+          simContributionThresh,
+          outfile);
+
+  fprintf(stdout, "\n");
+
+  pyramidDenoise(state,
+                 levels,
+                 denoisePasses,
+                 simContributionThresh);
+
   imwrite(outfile, state.resultMat);
 
   return 0;

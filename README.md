@@ -1,6 +1,6 @@
 # KEEMY
 
-**KEEMY** (**K**entucky **E**fficient **E**rror **M**odeler) is a fast blind image denoiser developed at the University of Kentucky’s KAOS Research Lab. It is an improved version of KEMY, sharing the same self-derived statistical error model while improving runtime and denoising quality through more efficient patch correspondence and reconstruction.
+**KEEMY** (**K**entucky **E**fficient **E**rror **M**odeler) is a fast blind image denoiser developed at the University of Kentucky’s [KAOS Research Lab](https://aggregate.org/). It is an improved version of KEMY, sharing the same self-derived statistical error model while improving runtime and denoising quality through more efficient patch correspondence and reconstruction.
 
 ### Why Use KEEMY
 Most traditional image denoisers rely on explicit noise assumptions (e.g., Gaussian noise models) or are trained on fixed distributions, which limits their robustness when encountering real-world or mixed noise sources such as Poisson noise, shot noise, or sensor-dependent artifacts.

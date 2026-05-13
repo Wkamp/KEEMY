@@ -23,7 +23,7 @@ Below is a cropped image comparison from the [project writeup](https://eiron.xyz
 
 ## Documentation
 
-The full KEEMY writeup includes implementation details, benchmarking results, image comparisons, denoising pipeline explanations, along with background information for those without prior experience in image processing.
+The full KEEMY writeup includes implementation details, benchmarking results, image comparisons, along with background information for those without prior experience in image processing.
 
 * [KEEMY writeup](https://eiron.xyz/keemy/)  
 * [Original KEMY project](https://aggregate.org/DIT/KEMY/)

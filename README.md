@@ -27,7 +27,7 @@ The full KEEMY writeup includes implementation details, benchmarking results, im
 
 * [KEEMY writeup](https://eiron.xyz/keemy/)  
 * [Original KEMY project](https://aggregate.org/DIT/KEMY/)
-* [Paper on Error Models](https://aggregate.org/DIT/ERRPDF/)
+* [Paper on error models](https://aggregate.org/DIT/ERRPDF/)
 
 ## Dependencies
 

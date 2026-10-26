@@ -1,5 +1,5 @@
 CXX = g++
-CXXFLAGS = -O3
+CXXFLAGS = -O3 -fopenmp
 OPENCV = `pkg-config --cflags --libs opencv4`
 
 SRC = keemy.cpp

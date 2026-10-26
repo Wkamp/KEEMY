@@ -32,7 +32,7 @@ The full KEEMY writeup includes implementation details, benchmarking results, im
 ## Dependencies
 
 - **OpenCV 4** (primarily used for image I/O)
-
+- **OpenMP** (multithreading) 
 ## Compilation
 
 The provided `Makefile` builds separate binaries for color and grayscale denoising.
@@ -52,7 +52,7 @@ make keemy_gray
 `COLORS` specifies the number of color channels.
 
 ```
-g++ -O3 keemy.cpp -DCOLORS=3 -o keemy `pkg-config --cflags --libs opencv4`
+g++ -O3 -fopenmp keemy.cpp -DCOLORS=3 -o keemy `pkg-config --cflags --libs opencv4`
 ```
 
 ## Usage
